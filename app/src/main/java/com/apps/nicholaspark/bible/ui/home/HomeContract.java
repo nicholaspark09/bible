@@ -10,9 +10,13 @@ public interface HomeContract {
 
   interface View {
     void showIntroUi();
+    void setLoadingIndicator(boolean isLoading);
+    void showError(String error);
   }
 
   interface Presenter extends BasePresenter {
     void openIntro();
+    void setView(View view);
+    void openBookLoadingState(Boolean loadingState);
   }
 }

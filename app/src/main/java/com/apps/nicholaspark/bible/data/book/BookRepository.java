@@ -6,6 +6,7 @@ import android.support.annotation.Nullable;
 import com.apps.nicholaspark.bible.data.qualifier.Local;
 import com.apps.nicholaspark.bible.data.qualifier.Remote;
 import com.apps.nicholaspark.bible.data.vo.Book;
+import com.apps.nicholaspark.bible.data.vo.Version;
 import com.apps.nicholaspark.bible.di.ApplicationScope;
 import com.google.common.annotations.VisibleForTesting;
 
@@ -18,8 +19,11 @@ import javax.inject.Inject;
 
 import io.reactivex.Observable;
 import io.reactivex.ObservableSource;
-import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
+import io.reactivex.subjects.BehaviorSubject;
+import io.reactivex.subjects.Subject;
+import preferences2.Preference;
+import timber.log.Timber;
 
 /**
  * Created by nicholaspark on 12/22/16.
@@ -38,39 +42,44 @@ public final class BookRepository implements BookDataSource {
 
   boolean cacheIsDirty = false;
 
-  @NonNull
-  private final BookDataSource localLayer;
+  public Book selectedBook;
 
   @NonNull
   private final BookDataSource networkLayer;
 
+  private final Preference<Version> version;
+
+  private Subject<Boolean> loadingState;
+
 
 
   @Inject
-  public BookRepository(@Local BookDataSource localSource, @Remote BookDataSource remoteSource) {
-    this.localLayer = localSource;
+  public BookRepository(@Remote BookDataSource remoteSource,
+                        Preference<Version> versionPreference) {
     this.networkLayer = remoteSource;
+    this.version = versionPreference;
+    loadingState = BehaviorSubject.createDefault(false).toSerialized();
   }
 
   @Override
-  public Observable<List<Book>> getBooks(@NonNull String version) {
+  public Observable<List<Book>> getBooks(String version) {
+    loadingState.onNext(true);
     if (cachedBooks != null && !cacheIsDirty)
     {
       // Responds immediately with cache if available
       List<Book> list = new ArrayList<>(cachedBooks.values());
-      return Observable.just(list);
-    }else if (cachedBooks == null) {
-      cachedBooks = new LinkedHashMap<>();
+      return Observable.just(list)
+              .doOnComplete(()-> loadingState.onNext(false));
     }
 
-    Observable<List<Book>> remoteBooks = getAndSaveRemoteBooks(version);
-    if (cacheIsDirty) {
-      return remoteBooks;
-    }else {
-      Observable<List<Book>> localBooks = getAndCacheLocalBooks(version);
-      return Observable.concat(localBooks, remoteBooks)
-              .filter(books -> !books.isEmpty());
-    }
+    String versionId = this.version.get().id();
+    Observable<List<Book>> remoteBooks = getAndSaveRemoteBooks(versionId);
+      return remoteBooks
+              .doOnComplete(()-> {
+                loadingState.onNext(false);
+                cacheIsDirty = false;
+              });
+
   }
 
   @Override
@@ -80,7 +89,6 @@ public final class BookRepository implements BookDataSource {
 
   @Override
   public void saveBook(@NonNull Book book) {
-    localLayer.saveBook(book);
     if (cachedBooks == null)
       cachedBooks = new LinkedHashMap<>();
     cachedBooks.put(book.id(), book);
@@ -88,13 +96,11 @@ public final class BookRepository implements BookDataSource {
 
   @Override
   public void deleteBook(@NonNull String id) {
-    localLayer.deleteBook(id);
     cachedBooks.remove(id);
   }
 
   @Override
   public void deleteAll() {
-    localLayer.deleteAll();
     if (cachedBooks == null)
       cachedBooks = new LinkedHashMap<>();
     cachedBooks.clear();
@@ -102,7 +108,23 @@ public final class BookRepository implements BookDataSource {
 
   @Override
   public void refresh() {
+    cacheIsDirty = true;
+  }
 
+  @Override
+  public void setSelectedBook(String bookId) {
+    selectedBook = cachedBooks.get(bookId);
+  }
+
+  @Override
+  public Book getSelectedBook() {
+    if (selectedBook != null)
+      return selectedBook;
+    return null;
+  }
+
+  public Observable<Boolean> getLoadingState() {
+    return loadingState;
   }
 
   private Observable<List<Book>> getAndSaveRemoteBooks(String versionId) {
@@ -112,27 +134,12 @@ public final class BookRepository implements BookDataSource {
               @Override
               public ObservableSource<List<Book>> apply(List<Book> books) throws Exception {
                 for(Book book : books) {
-                  localLayer.saveBook(book);
-                  cachedBooks.put(book.id(), book);
-                }
-                return Observable.fromArray(books)
-                        .doOnComplete(()-> cacheIsDirty = false);
-              }
-            });
-
-  }
-
-  private Observable<List<Book>> getAndCacheLocalBooks(String version) {
-    return localLayer.getBooks(version)
-            .flatMap(new Function<List<Book>, ObservableSource<List<Book>>>() {
-              @Override
-              public ObservableSource<List<Book>> apply(List<Book> books) throws Exception {
-                for(Book book : books) {
-                  cachedBooks.put(book.id(), book);
+                  saveBook(book);
                 }
                 return Observable.fromArray(books);
               }
             });
 
   }
+
 }

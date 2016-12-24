@@ -15,10 +15,12 @@ import io.reactivex.Observable;
  */
 
 public interface BookDataSource {
-  Observable<List<Book>> getBooks(@NonNull String version);
+  Observable<List<Book>> getBooks(String version);
   Observable<Book> getBook(@NonNull String id);
   void saveBook(@NonNull Book book);
   void deleteBook(@NonNull String id);
   void deleteAll();
   void refresh();
+  void setSelectedBook(String bookId);
+  Book getSelectedBook();
 }

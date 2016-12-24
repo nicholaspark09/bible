@@ -18,15 +18,19 @@ import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 
+import com.apps.nicholaspark.bible.data.book.BookRepository;
+import com.apps.nicholaspark.bible.data.chapter.ChapterRepository;
 import com.apps.nicholaspark.bible.data.version.VersionRepository;
-import com.apps.nicholaspark.bible.data.vo.VersionResponse;
+import com.apps.nicholaspark.bible.data.vo.Book;
+import com.apps.nicholaspark.bible.data.vo.Chapter;
 import com.apps.nicholaspark.bible.di.DaggerService;
 import com.apps.nicholaspark.bible.ui.home.HomeView;
 import com.bluelinelabs.conductor.Conductor;
 import com.bluelinelabs.conductor.Router;
 import com.bluelinelabs.conductor.RouterTransaction;
 
-import org.json.JSONObject;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.inject.Inject;
 
@@ -36,18 +40,18 @@ import butterknife.Unbinder;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.disposables.Disposable;
-import io.reactivex.functions.Consumer;
 import io.reactivex.schedulers.Schedulers;
 import timber.log.Timber;
 
 public class MainActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener {
+        implements NavigationView.OnNavigationItemSelectedListener,
+        ActionBarProvider, DrawerToggleProvider {
 
-  @Inject
-  Application app;
-  @Inject
-  ViewContainer debugViewContainer;
+  @Inject Application app;
+  @Inject ViewContainer debugViewContainer;
   @Inject VersionRepository versionRepo;
+  @Inject BookRepository bookRepository;
+  @Inject ChapterRepository chapterRepository;
   @BindView(R.id.view_container)
   FrameLayout viewContainer;
   private Unbinder unbinder;
@@ -57,6 +61,8 @@ public class MainActivity extends AppCompatActivity
   private RecyclerView chapterRecyclerView;
   private NavigationView navigationView;
   private BooksRecyclerAdapter adapter;
+  private ChaptersRecyclerAdapter chaptersAdapter;
+  ActionBarDrawerToggle toggle;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -75,8 +81,16 @@ public class MainActivity extends AppCompatActivity
 
 
     DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-    ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
-            this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+    toggle = new ActionBarDrawerToggle(
+            this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close){
+      @Override
+      public void onDrawerClosed(View drawerView) {
+        if (chapterRecyclerView != null) {
+          chapterRecyclerView.setVisibility(View.INVISIBLE);
+        }
+        super.onDrawerClosed(drawerView);
+      }
+    };
     drawer.setDrawerListener(toggle);
     toggle.syncState();
 
@@ -85,8 +99,11 @@ public class MainActivity extends AppCompatActivity
       recyclerView = (RecyclerView) navigationView.findViewById(R.id.recycler_view);
       chapterRecyclerView = (RecyclerView) navigationView.findViewById(R.id.chapter_recycler_view);
       adapter = new BooksRecyclerAdapter();
+      chaptersAdapter = new ChaptersRecyclerAdapter();
       recyclerView.setLayoutManager(new LinearLayoutManager(this));
       recyclerView.setAdapter(adapter);
+      chapterRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+      chapterRecyclerView.setAdapter(chaptersAdapter);
     }
     navigationView.setNavigationItemSelectedListener(this);
 
@@ -98,15 +115,9 @@ public class MainActivity extends AppCompatActivity
     disposables = new CompositeDisposable();
 
 
-    Disposable disposable = versionRepo.getVersions()
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe(
-                    // onNext
-                    this::handleVersionResponse,
-                    this::handleError
-            );
-    disposables.add(disposable);
+
+
+    getBookList();
   }
 
   @Override
@@ -167,26 +178,81 @@ public class MainActivity extends AppCompatActivity
 
   @Override
   protected void onDestroy() {
-    unbinder.unbind();
+    Timber.d("Destroying...");
     disposables.clear();
+    unbinder.unbind();
     super.onDestroy();
   }
 
-  private void handleVersionResponse(VersionResponse response) {
-    Timber.d("yout got a response: "+response.toString());
+  @Override
+  public void setActionBar(Toolbar toolbar) {
+    setSupportActionBar(toolbar);
   }
 
-  private void handleError(Throwable throwable) {
-    Timber.d("You got an erro "+throwable.getMessage());
+  @Override
+  public ActionBarDrawerToggle getToggle() {
+    return toggle;
+  }
+
+  // Handle responses from BookRepository
+  private void handleBookResponses(List<Book> books) {
+    Timber.d("You got a list of books of size " +books.size());
+    adapter.setBooks(books);
+  }
+
+  // Handle errors from BookRepository
+  private void onError(Throwable throwable) {
+    Timber.d("You got an error " + throwable.getMessage());
+  }
+
+  private void handleChapters(List<Chapter> chapters) {
+    Timber.d("You got a list of chapters ");
+    for(Chapter chapter : chapters) {
+      Timber.d("Chapter: " + chapter.name()+ " and book: " + chapter.parent().book().name());
+    }
+    chaptersAdapter.setChapters(chapters);
+    chapterRecyclerView.smoothScrollToPosition(0);
+  }
+
+  private void getBookList() {
+    Disposable disposable = bookRepository.getBooks("")
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(
+                    // onNext
+                    this::handleBookResponses,
+                    // onError
+                    this::onError
+            );
+    disposables.add(disposable);
+  }
+
+  private void getChapters() {
+    Disposable disposable = chapterRepository.
+            getChapters("")
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(
+                    // onNext
+                    this::handleChapters,
+                    // onError
+                    this::onError
+            );
+    disposables.add(disposable);
   }
 
   // Custom RecyclerView Adapter to handle and display Accounts in the navigation menu
   public class BooksRecyclerAdapter extends RecyclerView.Adapter<BooksRecyclerAdapter.ViewHolder> {
 
-    private String[] books;
+    private List<Book> books;
 
     public BooksRecyclerAdapter() {
-      books = getResources().getStringArray(R.array.books);
+      books = new ArrayList<>();
+    }
+
+    private void setBooks(List<Book> books) {
+      this.books = books;
+      notifyDataSetChanged();
     }
 
     @Override
@@ -198,8 +264,61 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-      final String book = books[position];
-      holder.titleTextView.setText(book);
+      final Book book = books.get(position);
+      holder.titleTextView.setText(book.toString());
+      holder.itemView.setOnClickListener(new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+          bookRepository.setSelectedBook(book.id());
+          chapterRecyclerView.setVisibility(View.VISIBLE);
+          getChapters();
+        }
+      });
+    }
+
+    @Override
+    public int getItemCount() {
+      return books.size();
+    }
+
+    public class ViewHolder extends RecyclerView.ViewHolder {
+
+      @BindView(R.id.book_name_text_view)
+      TextView titleTextView;
+
+      public ViewHolder(View v) {
+        super(v);
+        ButterKnife.bind(this, v);
+      }
+    }
+  }
+
+
+  // Custom RecyclerView Adapter to handle and display Accounts in the navigation menu
+  public class ChaptersRecyclerAdapter extends RecyclerView.Adapter<ChaptersRecyclerAdapter.ViewHolder> {
+
+    private List<Chapter> chapters;
+
+    public ChaptersRecyclerAdapter() {
+      chapters = new ArrayList<>();
+    }
+
+    private void setChapters(List<Chapter> chapters) {
+      this.chapters = chapters;
+      notifyDataSetChanged();
+    }
+
+    @Override
+    public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+      View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.menu_row, parent, false);
+      ViewHolder vh = new ViewHolder(view);
+      return vh;
+    }
+
+    @Override
+    public void onBindViewHolder(ViewHolder holder, int position) {
+      final Chapter chapter = chapters.get(position);
+      holder.titleTextView.setText(chapter.name());
       holder.itemView.setOnClickListener(new View.OnClickListener() {
         @Override
         public void onClick(View v) {
@@ -210,7 +329,7 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public int getItemCount() {
-      return books.length;
+      return chapters.size();
     }
 
     public class ViewHolder extends RecyclerView.ViewHolder {

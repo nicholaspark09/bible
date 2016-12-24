@@ -41,6 +41,9 @@ android {
     }
     packagingOptions {
         exclude 'LICENSE.txt'
+        exclude 'META-INF/DEPENDENCIES'
+        exclude 'META-INF/LICENSE'
+        exclude 'META-INF/LICENSE.txt'
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
@@ -142,7 +145,4 @@ dependencies {
     testCompile 'com.google.truth:truth:0.30'
     testCompile 'org.mockito:mockito-core:2.2.3'
 
-    // Local DB
-    compile 'com.squareup.sqlbrite:sqlbrite:' + SQLBRITE_VERSION
-    compile "com.github.akarnokd:rxjava2-interop:0.8.1"
 }

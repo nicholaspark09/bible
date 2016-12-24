@@ -5,6 +5,7 @@ package com.apps.nicholaspark.bible.ui.base;
  */
 
 public interface BasePresenter {
+    void init();
     void subscribe();
     void unsubscribe();
     void onError(Throwable throwable);

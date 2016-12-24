@@ -14,7 +14,9 @@ import javax.inject.Inject;
 import io.reactivex.Observable;
 import io.reactivex.ObservableSource;
 import io.reactivex.ObservableTransformer;
+import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
+import timber.log.Timber;
 
 /**
  * Created by nicholaspark on 12/21/16.
@@ -35,6 +37,7 @@ public class BookRemoteDataSource implements BookDataSource {
             .flatMap(new Function<BookResponse, ObservableSource<List<Book>>>() {
               @Override
               public ObservableSource<List<Book>> apply(BookResponse bookResponse) throws Exception {
+                Timber.d("The response " + bookResponse.toString());
                 return Observable.just(bookResponse.response().books());
               }
             });
@@ -64,5 +67,15 @@ public class BookRemoteDataSource implements BookDataSource {
   @Override
   public void refresh() {
     // Handled in concrete implementation
+  }
+
+  @Override
+  public void setSelectedBook(String bookId) {
+
+  }
+
+  @Override
+  public Book getSelectedBook() {
+    return null;
   }
 }

@@ -14,8 +14,8 @@ import com.google.gson.TypeAdapter;
     return new AutoValue_BookResponse(object);
   }
 
-  public static TypeAdapter<BookResponseObject> typeAdapter(Gson gson) {
-    return new AutoValue_BookResponseObject.GsonTypeAdapter(gson);
+  public static TypeAdapter<BookResponse> typeAdapter(Gson gson) {
+    return new AutoValue_BookResponse.GsonTypeAdapter(gson);
   }
 
   public abstract BookResponseObject response();

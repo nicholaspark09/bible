@@ -9,5 +9,6 @@ import com.apps.nicholaspark.bible.ui.home.HomeView;
 public interface AppComponent {
   void inject(BibleApp app);
   void inject(MainActivity mainActivity);
+  void inject(SplashActivity splashActivity);
   void inject(HomeView homeView);
 }

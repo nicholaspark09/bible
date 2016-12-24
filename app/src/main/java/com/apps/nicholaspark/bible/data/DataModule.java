@@ -5,14 +5,12 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.AssetManager;
 
-import com.apps.nicholaspark.bible.BuildConfig;
 import com.apps.nicholaspark.bible.data.api.BibleApi;
 import com.apps.nicholaspark.bible.data.book.BookDataSource;
-import com.apps.nicholaspark.bible.data.book.local.BookDbHelper;
-import com.apps.nicholaspark.bible.data.book.local.BookLocalDataSource;
 import com.apps.nicholaspark.bible.data.book.remote.BookRemoteDataSource;
+import com.apps.nicholaspark.bible.data.chapter.ChapterDataSource;
+import com.apps.nicholaspark.bible.data.chapter.remote.ChapterRemoteDataSource;
 import com.apps.nicholaspark.bible.data.oauth.OauthInterceptor;
-import com.apps.nicholaspark.bible.data.qualifier.Local;
 import com.apps.nicholaspark.bible.data.qualifier.Remote;
 import com.apps.nicholaspark.bible.data.version.VersionDataSource;
 import com.apps.nicholaspark.bible.data.version.remote.VersionRemoteDataSource;
@@ -22,7 +20,6 @@ import com.apps.nicholaspark.bible.util.GsonPreferenceAdapter;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.jakewharton.retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
-import com.squareup.sqlbrite.SqlBrite;
 
 import java.io.File;
 import java.util.concurrent.TimeUnit;
@@ -119,25 +116,6 @@ public final class DataModule {
 
   @Provides
   @ApplicationScope
-  BookDbHelper provideBookDbHelper(Application app) {
-    return new BookDbHelper(app);
-  }
-
-  @Provides
-  @ApplicationScope
-  SqlBrite provideSqlBrite() {
-    return SqlBrite.create();
-  }
-
-  @Provides
-  @ApplicationScope
-  @Named("io")
-  rx.Scheduler provideIo() {
-    return rx.schedulers.Schedulers.io();
-  }
-
-  @Provides
-  @ApplicationScope
   @Named("ioThread")
   Scheduler provideIoThread() {
     return Schedulers.io();
@@ -150,18 +128,19 @@ public final class DataModule {
     return AndroidSchedulers.mainThread();
   }
 
-  @Provides
-  @ApplicationScope
-  @Local
-  BookDataSource provideLocalBookDataSource(BookDbHelper helper, SqlBrite sqlBrite, @Named("io") rx.Scheduler ioThread) {
-    return new BookLocalDataSource(helper, sqlBrite, ioThread);
-  }
 
   @Provides
   @ApplicationScope
   @Remote
   BookDataSource provideRemoteBookDataSource(BibleApi bibleApi) {
     return new BookRemoteDataSource(bibleApi);
+  }
+
+  @Provides
+  @ApplicationScope
+  @Remote
+  ChapterDataSource provideChapterRemoteDataSource(BibleApi bibleApi) {
+    return new ChapterRemoteDataSource(bibleApi);
   }
 
   static OkHttpClient.Builder createApiClient(OkHttpClient client, Interceptor interceptor) {

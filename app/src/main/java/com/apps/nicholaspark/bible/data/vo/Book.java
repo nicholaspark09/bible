@@ -33,14 +33,24 @@ import java.util.List;
   public abstract String id();
   public abstract String name();
   public abstract int ord();
+  @Nullable
   public abstract String testament();
+  @Nullable
   public abstract String abbr();
   @SerializedName("osis_end")
+  @Nullable
   public abstract String osisEnd();
   @SerializedName("book_group_id")
+  @Nullable
   public abstract String bookGroupId();
   @SerializedName("version_id")
+  @Nullable
   public abstract String versionId();
   @Nullable
   public abstract String copyright();
+
+  @Override
+  public String toString() {
+    return name();
+  }
 }
