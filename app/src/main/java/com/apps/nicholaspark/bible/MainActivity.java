@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -52,8 +53,8 @@ public class MainActivity extends AppCompatActivity
   @Inject VersionRepository versionRepo;
   @Inject BookRepository bookRepository;
   @Inject ChapterRepository chapterRepository;
-  @BindView(R.id.view_container)
-  FrameLayout viewContainer;
+  @BindView(R.id.view_container) FrameLayout viewContainer;
+  @BindView(R.id.chapter_swipe_layout) SwipeRefreshLayout swipeLayout;
   private Unbinder unbinder;
   private Router router;
   private CompositeDisposable disposables;
@@ -196,20 +197,16 @@ public class MainActivity extends AppCompatActivity
 
   // Handle responses from BookRepository
   private void handleBookResponses(List<Book> books) {
-    Timber.d("You got a list of books of size " +books.size());
     adapter.setBooks(books);
   }
 
   // Handle errors from BookRepository
   private void onError(Throwable throwable) {
-    Timber.d("You got an error " + throwable.getMessage());
+    swipeLayout.setRefreshing(false);
   }
 
   private void handleChapters(List<Chapter> chapters) {
-    Timber.d("You got a list of chapters ");
-    for(Chapter chapter : chapters) {
-      Timber.d("Chapter: " + chapter.name()+ " and book: " + chapter.parent().book().name());
-    }
+    swipeLayout.setRefreshing(false);
     chaptersAdapter.setChapters(chapters);
     chapterRecyclerView.smoothScrollToPosition(0);
   }
@@ -228,6 +225,7 @@ public class MainActivity extends AppCompatActivity
   }
 
   private void getChapters() {
+    swipeLayout.setRefreshing(true);
     Disposable disposable = chapterRepository.
             getChapters("")
             .subscribeOn(Schedulers.io())
@@ -271,6 +269,8 @@ public class MainActivity extends AppCompatActivity
         public void onClick(View v) {
           bookRepository.setSelectedBook(book.id());
           chapterRecyclerView.setVisibility(View.VISIBLE);
+          List<Chapter> emptyChapters = new ArrayList<Chapter>();
+          chaptersAdapter.setChapters(emptyChapters);
           getChapters();
         }
       });

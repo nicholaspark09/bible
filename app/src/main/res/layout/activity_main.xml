@@ -46,18 +46,25 @@
 
             </android.support.v7.widget.RecyclerView>
 
-            <android.support.v7.widget.RecyclerView
-                android:layout_width="0dp"
+            <android.support.v4.widget.SwipeRefreshLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:visibility="gone"
-                android:background="@android:color/darker_gray"
+                android:id="@+id/chapter_swipe_layout"
                 android:layout_marginTop="@dimen/nav_header_height"
-                android:id="@+id/chapter_recycler_view"
                 >
 
+                <android.support.v7.widget.RecyclerView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:visibility="gone"
+                    android:background="@android:color/darker_gray"
+                    android:layout_marginTop="@dimen/nav_header_height"
+                    android:id="@+id/chapter_recycler_view"
+                    />
 
-            </android.support.v7.widget.RecyclerView>
+            </android.support.v4.widget.SwipeRefreshLayout>
+
 
         </LinearLayout>
 

@@ -47,6 +47,9 @@ public final class BookRepository implements BookDataSource {
   @NonNull
   private final BookDataSource networkLayer;
 
+  @NonNull
+  private final BookDataSource localSource;
+
   private final Preference<Version> version;
 
   private Subject<Boolean> loadingState;
@@ -54,8 +57,9 @@ public final class BookRepository implements BookDataSource {
 
 
   @Inject
-  public BookRepository(@Remote BookDataSource remoteSource,
+  public BookRepository(@Local BookDataSource localSource, @Remote BookDataSource remoteSource,
                         Preference<Version> versionPreference) {
+    this.localSource = localSource;
     this.networkLayer = remoteSource;
     this.version = versionPreference;
     loadingState = BehaviorSubject.createDefault(false).toSerialized();
@@ -88,6 +92,10 @@ public final class BookRepository implements BookDataSource {
   }
 
   @Override
+  public void saveBooks(List<Book> books) {
+
+  }
+
   public void saveBook(@NonNull Book book) {
     if (cachedBooks == null)
       cachedBooks = new LinkedHashMap<>();
@@ -125,6 +133,20 @@ public final class BookRepository implements BookDataSource {
 
   public Observable<Boolean> getLoadingState() {
     return loadingState;
+  }
+
+  private Observable<List<Book>> getLocalBooksAndUpdateCache(String versionId) {
+    return localSource
+            .getBooks(versionId)
+            .flatMap(new Function<List<Book>, ObservableSource<List<Book>>>() {
+              @Override
+              public ObservableSource<List<Book>> apply(List<Book> books) throws Exception {
+                for(Book book : books) {
+                  saveBook(book);
+                }
+                return Observable.fromArray(books);
+              }
+            });
   }
 
   private Observable<List<Book>> getAndSaveRemoteBooks(String versionId) {

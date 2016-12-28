@@ -10,13 +10,14 @@ import com.google.gson.annotations.SerializedName;
 
 import org.json.JSONObject;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
  * Created by nicholaspark on 12/18/16.
  */
 
-@AutoValue public abstract class Book {
+@AutoValue public abstract class Book implements Serializable {
 
   public static Book create(String id, String name, int order,
                             String testament, String abbr,

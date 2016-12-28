@@ -49,8 +49,8 @@ public class BookRemoteDataSource implements BookDataSource {
   }
 
   @Override
-  public void saveBook(@NonNull Book book) {
-    // Handled in concrete implementation
+  public void saveBooks(List<Book> books) {
+
   }
 
 

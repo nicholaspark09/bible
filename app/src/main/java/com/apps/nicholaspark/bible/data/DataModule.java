@@ -7,10 +7,12 @@ import android.content.res.AssetManager;
 
 import com.apps.nicholaspark.bible.data.api.BibleApi;
 import com.apps.nicholaspark.bible.data.book.BookDataSource;
+import com.apps.nicholaspark.bible.data.book.local.BookLocalDataSource;
 import com.apps.nicholaspark.bible.data.book.remote.BookRemoteDataSource;
 import com.apps.nicholaspark.bible.data.chapter.ChapterDataSource;
 import com.apps.nicholaspark.bible.data.chapter.remote.ChapterRemoteDataSource;
 import com.apps.nicholaspark.bible.data.oauth.OauthInterceptor;
+import com.apps.nicholaspark.bible.data.qualifier.Local;
 import com.apps.nicholaspark.bible.data.qualifier.Remote;
 import com.apps.nicholaspark.bible.data.version.VersionDataSource;
 import com.apps.nicholaspark.bible.data.version.remote.VersionRemoteDataSource;
@@ -22,6 +24,8 @@ import com.google.gson.GsonBuilder;
 import com.jakewharton.retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
 
 import java.io.File;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import javax.inject.Named;
@@ -116,6 +120,13 @@ public final class DataModule {
 
   @Provides
   @ApplicationScope
+  @Named("BibleBooks")
+  Preference<String> provideBooks(RxSharedPreferences sharedPreferences) {
+    return sharedPreferences.getString("key.biblebooks", "");
+  }
+
+  @Provides
+  @ApplicationScope
   @Named("ioThread")
   Scheduler provideIoThread() {
     return Schedulers.io();
@@ -134,6 +145,13 @@ public final class DataModule {
   @Remote
   BookDataSource provideRemoteBookDataSource(BibleApi bibleApi) {
     return new BookRemoteDataSource(bibleApi);
+  }
+
+  @Provides
+  @ApplicationScope
+  @Local
+  BookDataSource provideLocalBookDataSource(@Named("BibleBooks") Preference<String> books, Gson gson) {
+    return new BookLocalDataSource(books, gson);
   }
 
   @Provides
