@@ -74,15 +74,20 @@ public final class BookRepository implements BookDataSource {
       List<Book> list = new ArrayList<>(cachedBooks.values());
       return Observable.just(list)
               .doOnComplete(()-> loadingState.onNext(false));
+    }else if (cachedBooks == null) {
+      cachedBooks = new LinkedHashMap<>();
     }
-
     String versionId = this.version.get().id();
-    Observable<List<Book>> remoteBooks = getAndSaveRemoteBooks(versionId);
-      return remoteBooks
-              .doOnComplete(()-> {
-                loadingState.onNext(false);
-                cacheIsDirty = false;
-              });
+
+    Observable<List<Book>> localBooks = getLocalBooksAndUpdateCache(versionId);
+
+    if (cacheIsDirty) {
+      Observable<List<Book>> remoteBooks = getAndSaveRemoteBooks(versionId);
+      return remoteBooks;
+    }else {
+      Timber.d("You are here in the local grab");
+      return localBooks;
+    }
 
   }
 
@@ -93,7 +98,10 @@ public final class BookRepository implements BookDataSource {
 
   @Override
   public void saveBooks(List<Book> books) {
-
+    localSource.saveBooks(books);
+    for(Book book : books) {
+      saveBook(book);
+    }
   }
 
   public void saveBook(@NonNull Book book) {
@@ -142,7 +150,14 @@ public final class BookRepository implements BookDataSource {
               @Override
               public ObservableSource<List<Book>> apply(List<Book> books) throws Exception {
                 for(Book book : books) {
+                  Timber.d("Found books");
                   saveBook(book);
+                }
+                if (books.size() < 1) {
+                  cacheIsDirty = true;
+                }else {
+                  loadingState.onNext(false);
+                  cacheIsDirty = false;
                 }
                 return Observable.fromArray(books);
               }
@@ -155,11 +170,12 @@ public final class BookRepository implements BookDataSource {
             .flatMap(new Function<List<Book>, ObservableSource<List<Book>>>() {
               @Override
               public ObservableSource<List<Book>> apply(List<Book> books) throws Exception {
-                for(Book book : books) {
-                  saveBook(book);
-                }
+                saveBooks(books);
                 return Observable.fromArray(books);
               }
+            }).doOnComplete(()-> {
+              cacheIsDirty = false;
+              loadingState.onNext(false);
             });
 
   }

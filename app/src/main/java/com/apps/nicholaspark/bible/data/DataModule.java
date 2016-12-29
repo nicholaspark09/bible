@@ -14,6 +14,8 @@ import com.apps.nicholaspark.bible.data.chapter.remote.ChapterRemoteDataSource;
 import com.apps.nicholaspark.bible.data.oauth.OauthInterceptor;
 import com.apps.nicholaspark.bible.data.qualifier.Local;
 import com.apps.nicholaspark.bible.data.qualifier.Remote;
+import com.apps.nicholaspark.bible.data.verse.VerseDataSource;
+import com.apps.nicholaspark.bible.data.verse.remote.VerseRemoteDataSource;
 import com.apps.nicholaspark.bible.data.version.VersionDataSource;
 import com.apps.nicholaspark.bible.data.version.remote.VersionRemoteDataSource;
 import com.apps.nicholaspark.bible.data.vo.Version;
@@ -152,6 +154,13 @@ public final class DataModule {
   @Local
   BookDataSource provideLocalBookDataSource(@Named("BibleBooks") Preference<String> books, Gson gson) {
     return new BookLocalDataSource(books, gson);
+  }
+
+  @Provides
+  @ApplicationScope
+  @Remote
+  VerseDataSource provideVerseDataSource(BibleApi bibleApi) {
+    return new VerseRemoteDataSource(bibleApi);
   }
 
   @Provides

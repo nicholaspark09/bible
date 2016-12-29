@@ -2,6 +2,7 @@ package com.apps.nicholaspark.bible.data.api;
 
 import com.apps.nicholaspark.bible.data.vo.BookResponse;
 import com.apps.nicholaspark.bible.data.vo.ChapterResponse;
+import com.apps.nicholaspark.bible.data.vo.VerseResponse;
 import com.apps.nicholaspark.bible.data.vo.VersionResponse;
 
 import io.reactivex.Observable;
@@ -21,5 +22,8 @@ public interface BibleApi {
 
   @GET("books/{book_id}/chapters.js")
   Observable<ChapterResponse> loadChapters(@Path("book_id") String bookId);
+
+  @GET("chapters/{chapter_id}/verses.js")
+  Observable<VerseResponse> loadVerses(@Path("chapter_id") String chapterId);
 
 }

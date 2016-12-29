@@ -64,6 +64,7 @@ public class MainActivity extends AppCompatActivity
   private BooksRecyclerAdapter adapter;
   private ChaptersRecyclerAdapter chaptersAdapter;
   ActionBarDrawerToggle toggle;
+  DrawerLayout drawer;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -81,7 +82,7 @@ public class MainActivity extends AppCompatActivity
     setSupportActionBar(toolbar);
 
 
-    DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+    drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
     toggle = new ActionBarDrawerToggle(
             this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close){
       @Override
@@ -110,7 +111,7 @@ public class MainActivity extends AppCompatActivity
 
     router = Conductor.attachRouter(this, viewContainer, savedInstanceState);
     if (!router.hasRootController()) {
-      router.setRoot(RouterTransaction.with(new HomeView()));
+      router.setRoot(RouterTransaction.with(new HomeView("")));
     }
 
     disposables = new CompositeDisposable();
@@ -194,6 +195,7 @@ public class MainActivity extends AppCompatActivity
   public ActionBarDrawerToggle getToggle() {
     return toggle;
   }
+
 
   // Handle responses from BookRepository
   private void handleBookResponses(List<Book> books) {
@@ -322,7 +324,9 @@ public class MainActivity extends AppCompatActivity
       holder.itemView.setOnClickListener(new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-
+          chapterRepository.chapter = chapter;
+          drawer.closeDrawers();
+          router.setRoot(RouterTransaction.with(new HomeView(chapter.id())));
         }
       });
     }

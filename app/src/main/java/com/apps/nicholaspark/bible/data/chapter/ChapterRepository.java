@@ -25,7 +25,7 @@ import timber.log.Timber;
  */
 @ApplicationScope
 public final class ChapterRepository implements ChapterDataSource {
-
+  public Chapter chapter;
   Map<String, Chapter> chapters;
   String currentBook = "";
   boolean cacheIsDirty = false;

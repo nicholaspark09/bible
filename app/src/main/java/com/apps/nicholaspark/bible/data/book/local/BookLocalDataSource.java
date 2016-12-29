@@ -16,6 +16,7 @@ import javax.inject.Named;
 
 import io.reactivex.Observable;
 import preferences2.Preference;
+import timber.log.Timber;
 
 /**
  * Created by nicholaspark on 12/28/16.
@@ -34,7 +35,6 @@ public class BookLocalDataSource implements BookDataSource {
   @Override
   public Observable<List<Book>> getBooks(String version) {
     return Observable.fromCallable(new Callable<List<Book>>() {
-
       @Override
       public List<Book> call() throws Exception {
         String serialized = books.get();
@@ -57,6 +57,7 @@ public class BookLocalDataSource implements BookDataSource {
   public void saveBooks(List<Book> books) {
     String serialized = gson.toJson(books);
     this.books.set(serialized);
+    Timber.d("Saved books");
   }
 
   @Override
